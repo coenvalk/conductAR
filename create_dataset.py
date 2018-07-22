@@ -35,6 +35,7 @@ import json
 import os
 import glob
 import cv2
+import numpy as np
 
 from object_detection.utils import dataset_util
 
@@ -65,9 +66,23 @@ def write_to_record(writer, img_folder, img_filename, boxes):
     xmins, ymins, xmaxs, ymaxs = boxes
 
     im = cv2.imread(os.path.join(img_folder, img_filename))
-    im_encoded = cv2.imencode('.jpg', im)[1]
-    width, height, channels = im.shape
+
+    """
+    cv2.imshow("original", im)
+    cv2.waitKey(500)
+    """
     
+    im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
+    im = im.astype(np.float32)
+    
+    im_encoded = cv2.imencode('.jpg', im)[1]
+    """
+    with open('image.jpg', 'wb+') as f:
+        f.write(im_encoded.tostring())
+    """
+ 
+    height, width, channels = im.shape
+
     xmins[:] = [i / width for i in xmins]
     ymins[:] = [i / height for i in ymins]
     xmaxs[:] = [i / width for i in xmaxs]
@@ -77,11 +92,18 @@ def write_to_record(writer, img_folder, img_filename, boxes):
     ymins = normalize(ymins)
     xmaxs = normalize(xmaxs)
     ymaxs = normalize(ymaxs)
-    
-    
-    for x in xmaxs:
-        if x > 1.1:
-            print(x)
+
+    """
+    for i in range(len(xmins)):
+        x1 = int(xmins[i] * width)
+        y1 = int(ymins[i] * height)
+        x2 = int(xmaxs[i] * width)
+        y2 = int(ymaxs[i] * height)
+        im = cv2.rectangle(im, (x1, y1), (x2, y2), (255, 0, 0), 2)
+        
+    cv2.imshow("image", im)
+    cv2.waitKey(500)
+    """
 
     classes_text = ["hand".encode("utf8") for x in xmins]
     classes = [1 for x in xmins]
@@ -105,8 +127,6 @@ def write_to_record(writer, img_folder, img_filename, boxes):
     example = tf.train.Example(features=tf.train.Features(feature=feature_dict))
     writer.write(example.SerializeToString())
     
-    # print(width, height, channels)
-    
 
 def to_bounding_box(box):
     xmin = box[0][0]
@@ -124,7 +144,7 @@ def to_bounding_box(box):
         if ymax < point[1]:
             ymax = point[1]
 
-    return (xmin, ymin, xmax, ymax)
+    return (ymin, xmin, ymax, xmax)
 
 for i in range(len(annotation_folders)):
     prefix = types[i]
@@ -135,7 +155,6 @@ for i in range(len(annotation_folders)):
     count = 0
     for filename in glob.glob(os.path.join(annotation_folder, '*.mat')):
         imgname = filename[len(annotation_folder) + 1:-3] + "jpg"
-        # print(imgname)
         
         F = sio.loadmat(filename)
         xmins = []
@@ -164,5 +183,4 @@ for i in range(len(annotation_folders)):
         bbox = (xmins, ymins, xmaxs, ymaxs)
         write_to_record(writer, image_folder, imgname, bbox)
         del F
-        # print("")
     writer.close()
