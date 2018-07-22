@@ -65,6 +65,7 @@ def write_to_record(writer, img_folder, img_filename, boxes):
     xmins, ymins, xmaxs, ymaxs = boxes
 
     im = cv2.imread(os.path.join(img_folder, img_filename))
+    im_encoded = cv2.imencode('.jpg', im)[1]
     width, height, channels = im.shape
     
     xmins[:] = [i / width for i in xmins]
@@ -91,8 +92,8 @@ def write_to_record(writer, img_folder, img_filename, boxes):
         'image/width': dataset_util.int64_feature(width),
         'image/filename': dataset_util.bytes_feature(img_filename.encode('utf8')),
         'image/source_id': dataset_util.bytes_feature(img_filename.encode('utf8')),
-        'image/encoded': dataset_util.bytes_feature(im.tostring()),
-        'image/format': dataset_util.bytes_feature('jpg'.encode('utf8')),
+        'image/encoded': dataset_util.bytes_feature(im_encoded.tostring()),
+        'image/format': dataset_util.bytes_feature('jpeg'.encode('utf8')),
         'image/object/bbox/xmin': dataset_util.float_list_feature(xmins),
         'image/object/bbox/xmax': dataset_util.float_list_feature(xmaxs),
         'image/object/bbox/ymin': dataset_util.float_list_feature(ymins),
