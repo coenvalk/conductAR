@@ -72,7 +72,6 @@ def write_to_record(writer, img_folder, img_filename, boxes):
     cv2.waitKey(500)
     """
     
-    im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
     im = im.astype(np.float32)
     
     im_encoded = cv2.imencode('.jpg', im)[1]
