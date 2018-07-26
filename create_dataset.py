@@ -22,6 +22,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
+"""
+Acknowledgements:
+
+[1] A. Mittal, A. Zisserman, P. H. S. Torr
+Hand detection using multiple proposals  
+British Machine Vision Conference, 2011 
+
+"""
+
 
 """
 
