@@ -12,7 +12,7 @@ to ensure they are formatted correctly...
 
 """
 
-input_folder = '../data/tf_ready'
+input_folder = '../data'
 
 def get_filenames(folder):
     filenames = []
@@ -54,7 +54,8 @@ def get_image(record):
         
         img = cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 0), 2)
         print((x1, y1, x2, y2))
-        
+
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     cv2.imshow('image', img)
     cv2.waitKey(1000)
 
@@ -62,6 +63,7 @@ def get_image(record):
 if __name__ == "__main__":
     F = get_filenames(input_folder)
     D = tf.data.TFRecordDataset(F)
+    D = D.shuffle(10000)
     it = D.make_one_shot_iterator()
     while True:
         get_image(it.get_next())

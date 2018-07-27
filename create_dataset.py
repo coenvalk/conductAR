@@ -45,17 +45,33 @@ import os
 import glob
 import cv2
 import numpy as np
+import wget
+import tarfile
 
 from object_detection.utils import dataset_util
 
-annotation_folders = ['hand_dataset/training_dataset/training_data/annotations',
-                      'hand_dataset/validation_dataset/validation_data/annotations',
-                      'hand_dataset/test_dataset/test_data/annotations']
-image_folders = ['hand_dataset/training_dataset/training_data/images',
-                 'hand_dataset/validation_dataset/validation_data/images',
-                 'hand_dataset/test_dataset/test_data/images']
-types = ['train', 'val', 'test']
-output_folder = 'data/tf_ready'
+# downloads all raw data from datasets to be converted to tfrecords
+def download_data():
+    url = "http://www.robots.ox.ac.uk/~vgg/data/hands/downloads/hand_dataset.tar.gz"
+    wget.download(url, 'hand_dataset.tar.gz')
+    F = tarfile.open('hand_dataset.tar.gz')
+    F.extractall('raw_data')
+    os.rename("raw_data/hand_dataset", "raw_data/oxford")
+    os.remove('hand_dataset.tar.gz')
+
+if not os.path.isdir('raw_data'):
+    print("Downloading datasets... This could take a while.")
+    os.makedirs('raw_data')
+    download_data()
+
+annotation_folders = ['raw_data/oxford/training_dataset/training_data/annotations',
+                      'raw_data/oxford/validation_dataset/validation_data/annotations',
+                      'raw_data/oxford/test_dataset/test_data/annotations']
+image_folders = ['raw_data/oxford/training_dataset/training_data/images',
+                 'raw_data/oxford/validation_dataset/validation_data/images',
+                 'raw_data/oxford/test_dataset/test_data/images']
+types = ['train', 'train', 'test']
+output_folder = 'data'
 
 if not os.path.exists(output_folder):
     os.makedirs(output_folder)
@@ -153,14 +169,15 @@ def to_bounding_box(box):
             ymax = point[1]
 
     return (ymin, xmin, ymax, xmax)
-
+count = 0
 for i in range(len(annotation_folders)):
     prefix = types[i]
+    if prefix == 'test':
+        count = 0
     print(prefix)
     annotation_folder = annotation_folders[i]
     image_folder = image_folders[i]
     writer = tf.python_io.TFRecordWriter(os.path.join(output_folder, prefix + '_0.tfrecords'))
-    count = 0
     for filename in glob.glob(os.path.join(annotation_folder, '*.mat')):
         imgname = filename[len(annotation_folder) + 1:-3] + "jpg"
         
