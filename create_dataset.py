@@ -47,11 +47,12 @@ import cv2
 import numpy as np
 import wget
 import tarfile
+import zipfile
 
 from object_detection.utils import dataset_util
 
 # downloads all raw data from datasets to be converted to tfrecords
-def download_data():
+def download_oxford_data():
     url = "http://www.robots.ox.ac.uk/~vgg/data/hands/downloads/hand_dataset.tar.gz"
     wget.download(url, 'hand_dataset.tar.gz')
     F = tarfile.open('hand_dataset.tar.gz')
@@ -59,22 +60,16 @@ def download_data():
     os.rename("raw_data/hand_dataset", "raw_data/oxford")
     os.remove('hand_dataset.tar.gz')
 
-if not os.path.isdir('raw_data'):
-    print("Downloading datasets... This could take a while.")
-    os.makedirs('raw_data')
-    download_data()
+def download_egohands_data():
+    url = "http://vision.soic.indiana.edu/egohands_files/egohands_data.zip"
+    wget.download(url, 'egohands_data.zip')
+    F = zipfile.ZipFile('egohands_data.zip')
+    F.extractall('raw_data')
+    F.close()
+    os.rename('raw_data/egohands_data', 'raw_data/egohands')
+    os.remove('egohands_data.zip')
 
-annotation_folders = ['raw_data/oxford/training_dataset/training_data/annotations',
-                      'raw_data/oxford/validation_dataset/validation_data/annotations',
-                      'raw_data/oxford/test_dataset/test_data/annotations']
-image_folders = ['raw_data/oxford/training_dataset/training_data/images',
-                 'raw_data/oxford/validation_dataset/validation_data/images',
-                 'raw_data/oxford/test_dataset/test_data/images']
-types = ['train', 'train', 'test']
 output_folder = 'data'
-
-if not os.path.exists(output_folder):
-    os.makedirs(output_folder)
 
 def normalize(values):
     new_values = []
@@ -169,43 +164,129 @@ def to_bounding_box(box):
             ymax = point[1]
 
     return (ymin, xmin, ymax, xmax)
-count = 0
-for i in range(len(annotation_folders)):
-    prefix = types[i]
-    if prefix == 'test':
+
+def oxford_to_tfrecord():
+    count = 0
+    annotation_folders = ['raw_data/oxford/training_dataset/training_data/annotations',
+                          'raw_data/oxford/validation_dataset/validation_data/annotations',
+                          'raw_data/oxford/test_dataset/test_data/annotations']
+    image_folders = ['raw_data/oxford/training_dataset/training_data/images',
+                     'raw_data/oxford/validation_dataset/validation_data/images',
+                     'raw_data/oxford/test_dataset/test_data/images']
+    types = ['train', 'val', 'test']
+    
+    for i in range(len(annotation_folders)):
+        prefix = types[i]
         count = 0
-    print(prefix)
-    annotation_folder = annotation_folders[i]
-    image_folder = image_folders[i]
-    writer = tf.python_io.TFRecordWriter(os.path.join(output_folder, prefix + '_0.tfrecords'))
-    for filename in glob.glob(os.path.join(annotation_folder, '*.mat')):
-        imgname = filename[len(annotation_folder) + 1:-3] + "jpg"
+        print(prefix)
+        annotation_folder = annotation_folders[i]
+        image_folder = image_folders[i]
+        writer = tf.python_io.TFRecordWriter(os.path.join(output_folder,
+                                                          prefix + '_oxford_0.tfrecords'))
+        for filename in glob.glob(os.path.join(annotation_folder, '*.mat')):
+            imgname = filename[len(annotation_folder) + 1:-3] + "jpg"
+            
+            F = sio.loadmat(filename)
+            xmins = []
+            ymins = []
+            xmaxs = []
+            ymaxs = []
+            count += 1
+            if count % 1000 == 0:
+                # swap writers.
+                writer.close()
+                writer = tf.python_io.TFRecordWriter(os.path.join(
+                    output_folder, prefix + '_oxford_' + str(count // 1000) + ".tfrecords"))
+                print("swapping writers...")
         
-        F = sio.loadmat(filename)
-        xmins = []
-        ymins = []
-        xmaxs = []
-        ymaxs = []
-        count += 1
-        if count % 1000 == 0:
-            # swap writers.
-            writer.close()
-            writer = tf.python_io.TFRecordWriter(os.path.join(
-                output_folder, prefix + '_' + str(count // 1000) + ".tfrecords"))
-            print("swapping writers...")
         
-        
-        for box in F['boxes'].flatten():
-            bbox = []
-            for point in box.flatten()[0]:
-                if point.shape == (1, 2):
-                    bbox.append(point[0])
-            rect = to_bounding_box(bbox)
-            xmins.append(rect[0])
-            ymins.append(rect[1])
-            xmaxs.append(rect[2])
-            ymaxs.append(rect[3])
-        bbox = (xmins, ymins, xmaxs, ymaxs)
-        write_to_record(writer, image_folder, imgname, bbox)
-        del F
+            for box in F['boxes'].flatten():
+                bbox = []
+                for point in box.flatten()[0]:
+                    if point.shape == (1, 2):
+                        bbox.append(point[0])
+                rect = to_bounding_box(bbox)
+                xmins.append(rect[0])
+                ymins.append(rect[1])
+                xmaxs.append(rect[2])
+                ymaxs.append(rect[3])
+            bbox = (xmins, ymins, xmaxs, ymaxs)
+            write_to_record(writer, image_folder, imgname, bbox)
+            del F
+        writer.close()
+
+
+def egohands_to_tfrecord():
+    count = 0
+    metafilepath = 'raw_data/egohands/metadata.mat'
+    meta = sio.loadmat(metafilepath, struct_as_record=False, squeeze_me=True)
+    writer = tf.python_io.TFRecordWriter(os.path.join(output_folder,
+                                                      'egohands_0.tfrecords'))
+    for vid in meta['video']:
+        vidfolder = os.path.join("raw_data/egohands/_LABELLED_SAMPLES/", vid.video_id)
+        for frame in vid.labelled_frames:
+            count += 1
+            if count % 1000 == 0:
+                print("swapping writers...")
+                writer.close()
+                writer = tf.python_io.TFRecordWriter(
+                    os.path.join(output_folder,
+                                 'egohands_%d.tfrecords' % (count / 1000)))
+                
+            xmins = []
+            ymins = []
+            xmaxs = []
+            ymaxs = []
+            if len(frame.yourleft) > 0:
+                bbox = to_bounding_box(frame.yourleft)
+                ymins.append(bbox[0])
+                xmins.append(bbox[1])
+                ymaxs.append(bbox[2])
+                xmaxs.append(bbox[3])
+
+            if len(frame.yourright) > 0:
+                bbox = to_bounding_box(frame.yourright)
+                ymins.append(bbox[0])
+                xmins.append(bbox[1])
+                ymaxs.append(bbox[2])
+                xmaxs.append(bbox[3])
+
+            if len(frame.myleft) > 0:
+                bbox = to_bounding_box(frame.myleft)
+                ymins.append(bbox[0])
+                xmins.append(bbox[1])
+                ymaxs.append(bbox[2])
+                xmaxs.append(bbox[3])
+
+            if len(frame.myright) > 0:
+                bbox = to_bounding_box(frame.myright)
+                ymins.append(bbox[0])
+                xmins.append(bbox[1])
+                ymaxs.append(bbox[2])
+                xmaxs.append(bbox[3])
+
+            bbox = (xmins, ymins, xmaxs, ymaxs)
+            write_to_record(writer, vidfolder, 'frame_%04d.jpg' % frame.frame_num, bbox)
     writer.close()
+
+if __name__ == "__main__":    
+    if not os.path.isdir('raw_data'):
+        print("Downloading datasets... This could take a while.")
+        os.makedirs('raw_data')
+        download_oxford_data()
+        download_egohands_data()
+        print("Done downloading datasets")
+
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    print("oxford dataset:")
+    oxford_to_tfrecord()
+    print("done writing oxford dataset records")
+    print("egohands dataset:")
+    egohands_to_tfrecord()
+    print("done writing egohands dataset records")
+    print("create labels.pbtxt:")
+    with open('data/labels.pbtxt', 'w+') as F:
+        F.write('item {\n  name: "hand"\n  id: 1\n}')
+    print("done.")

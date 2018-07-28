@@ -16,7 +16,7 @@ input_folder = '../data'
 
 def get_filenames(folder):
     filenames = []
-    for filename in glob.glob(os.path.join(folder, 'train_*.tfrecords')):
+    for filename in glob.glob(os.path.join(folder, '*.tfrecords')):
         filenames.append(filename)
     return filenames
 
