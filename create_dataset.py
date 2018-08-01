@@ -42,7 +42,7 @@ year = {2015}
 
 """
 
-Creates tfrecord dataset from hand_dataset data folders that can easily be ingested by the object detection API.
+Creates tfrecord dataset from a few different hand dataset folders that can easily be ingested by the object detection API.
 
 """
 
@@ -72,9 +72,9 @@ def download_egohands_data():
     url = "http://vision.soic.indiana.edu/egohands_files/egohands_data.zip"
     wget.download(url, 'egohands_data.zip')
     F = zipfile.ZipFile('egohands_data.zip')
-    F.extractall('raw_data')
+    F.extractall('raw_data/egohands')
     F.close()
-    os.rename('raw_data/egohands_data', 'raw_data/egohands')
+    # os.rename('raw_data/egohands_data', 'raw_data/egohands')
     os.remove('egohands_data.zip')
 
 output_folder = 'data'
@@ -296,5 +296,5 @@ if __name__ == "__main__":
     print("done writing egohands dataset records")
     print("create labels.pbtxt:")
     with open('data/labels.pbtxt', 'w+') as F:
-        F.write('item {\n  name: "hand"\n  id: 1\n}')
+        F.write('item {\n  name: "hand"\n  id: 1\n  display_name: "hand"\n}')
     print("done.")
