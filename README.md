@@ -11,7 +11,18 @@ this program is written in python3, so make sure that is installed. installation
 
 ### Dependencies
 
+#### Music Playback Module
+
+Before you install the python dependencies, you will need the following packages:
+
+```bash
+sudo apt-get install -y libasound2-dev libjack-dev timidity
+```
+
+These are all necessary packages for getting music playback of `.midi` files working in the python libraries.
+
 #### Python Dependencies
+
 `requirements.txt` has all of the python dependencies. Install them with
 ```
 pip install -r requirements.txt
