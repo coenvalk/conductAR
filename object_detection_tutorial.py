@@ -16,12 +16,14 @@ import sys
 import tarfile
 import tensorflow as tf
 import zipfile
+import cv2
+import datetime
 
 from collections import defaultdict
 from io import StringIO
+from webcamStream import WebcamStream
 import matplotlib.pyplot as plt
 from PIL import Image
-import cv2
 
 # This is needed since the notebook is stored in the object_detection folder.
 sys.path.append("..")
@@ -171,12 +173,16 @@ def run_inference_for_single_image(image, graph):
 
 
 # In[ ]:
-cap = cv2.VideoCapture(0)
 
+fps = 0
+diff = 0
 with detection_graph.as_default():
   with tf.Session(graph=detection_graph) as sess:
+    W = WebcamStream()
+    W.start()
     while True:
-      ret, image_np = cap.read()
+      start = datetime.datetime.now()
+      image_np = W.read()
       # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
       image_np_expanded = np.expand_dims(image_np, axis=0)
       # Actual detection.
@@ -191,9 +197,12 @@ with detection_graph.as_default():
         instance_masks=output_dict.get('detection_masks'),
         use_normalized_coordinates=True,
         line_thickness=8)
-      
+
+      cv2.putText(image_np, str(diff), (10, 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1, cv2.LINE_AA)
       cv2.imshow('object detection', image_np)
+      diff = datetime.datetime.now() - start
+      diff = round(10**6 / float(diff.microseconds), 2)
       if cv2.waitKey(1) & 0xFF == ord('q'):
         cv2.destroyAllWindows()
         break
-
+    W.stop()
