@@ -1,8 +1,19 @@
+import pygame
 import mido
 import time
 
-port = mido.open_output()
 
-mid = mido.MidiFile('music_test.mid')
-for msg in mid.play():
-    port.send(msg)
+with mido.open_output('TiMidity port 1') as port:
+    F = mido.MidiFile('music_test.mid')
+
+    print F.ticks_per_beat
+
+    total = 0
+    
+    for msg in F.play():
+        total += msg.time
+        port.send(msg)
+
+    print total, F.length
+        
+    port.close()
