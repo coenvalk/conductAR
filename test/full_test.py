@@ -1,3 +1,4 @@
 import tensorflow
 
-print("installed and compiled everything correctly.")
+def test_sample():
+    print("installed and compiled everything correctly.")
