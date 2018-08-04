@@ -182,14 +182,15 @@ with detection_graph.as_default():
     W.start()
     while True:
       start = datetime.datetime.now()
-      image_np = W.read()
+      img = W.read()
+      image_np = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
       # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
       image_np_expanded = np.expand_dims(image_np, axis=0)
       # Actual detection.
       output_dict = run_inference_for_single_image(image_np, detection_graph)
       # Visualization of the results of a detection.
       vis_util.visualize_boxes_and_labels_on_image_array(
-        image_np,
+        img,
         output_dict['detection_boxes'],
         output_dict['detection_classes'],
         output_dict['detection_scores'],
@@ -198,8 +199,8 @@ with detection_graph.as_default():
         use_normalized_coordinates=True,
         line_thickness=8)
 
-      cv2.putText(image_np, str(diff), (10, 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1, cv2.LINE_AA)
-      cv2.imshow('object detection', image_np)
+      cv2.putText(img, str(diff), (10, 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1, cv2.LINE_AA)
+      cv2.imshow('object detection', img)
       diff = datetime.datetime.now() - start
       diff = round(10**6 / float(diff.microseconds), 2)
       if cv2.waitKey(1) & 0xFF == ord('q'):
