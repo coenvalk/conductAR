@@ -4,7 +4,6 @@ python:
   - "2.7"
 
 before_install:
-  - sudo apt-get install protobuf-compiler -y
   - pip install tensorflow Cython contextlib2 pillow lxml jupyter matplotlib
   - git clone https://github.com/tensorflow/models.git
   - git clone https://github.com/cocodataset/cocoapi.git
@@ -12,7 +11,9 @@ before_install:
   - make
   - cp -r pycocotools ../../models/research/
   - cd ../../models/research
-  - protoc object_detection/protos/*.proto --python_out=.
+  - wget -O protobuf.zip https://github.com/google/protobuf/releases/download/v3.0.0/protoc-3.0.0-linux-x86_64.zip
+  - unzip protobuf.zip
+  - ./bin/protoc object_detection/protos/*.proto --python_out=.
   - export PYTHONPATH=$PYTHONPATH:`pwd`:`pwd`/slim
   - cd ../..
 
