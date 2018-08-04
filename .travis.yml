@@ -16,6 +16,7 @@ before_install:
   - ./bin/protoc object_detection/protos/*.proto --python_out=.
   - export PYTHONPATH=$PYTHONPATH:`pwd`:`pwd`/slim
   - cd ../..
+  - sudo apt-get install -y libasound2-dev libjack-dev timidity
 
 install:
   - pip install -r requirements.txt
