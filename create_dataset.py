@@ -25,10 +25,6 @@ SOFTWARE.
 """
 Acknowledgements:
 
-A. Mittal, A. Zisserman, P. H. S. Torr
-Hand detection using multiple proposals  
-British Machine Vision Conference, 2011 
-
 @InProceedings{Bambach_2015_ICCV,
 author = {Bambach, Sven and Lee, Stefan and Crandall, David J. and Yu, Chen},
 title = {Lending A Hand: Detecting Hands and Recognizing Activities in Complex Egocentric Interactions},
@@ -42,7 +38,7 @@ year = {2015}
 
 """
 
-Creates tfrecord dataset from hand_dataset data folders that can easily be ingested by the object detection API.
+Creates tfrecord dataset from a few different hand dataset folders that can easily be ingested by the object detection API.
 
 """
 
@@ -60,21 +56,14 @@ import zipfile
 from object_detection.utils import dataset_util
 
 # downloads all raw data from datasets to be converted to tfrecords
-def download_oxford_data():
-    url = "http://www.robots.ox.ac.uk/~vgg/data/hands/downloads/hand_dataset.tar.gz"
-    wget.download(url, 'hand_dataset.tar.gz')
-    F = tarfile.open('hand_dataset.tar.gz')
-    F.extractall('raw_data')
-    os.rename("raw_data/hand_dataset", "raw_data/oxford")
-    os.remove('hand_dataset.tar.gz')
 
 def download_egohands_data():
     url = "http://vision.soic.indiana.edu/egohands_files/egohands_data.zip"
     wget.download(url, 'egohands_data.zip')
     F = zipfile.ZipFile('egohands_data.zip')
-    F.extractall('raw_data')
+    F.extractall('raw_data/egohands')
     F.close()
-    os.rename('raw_data/egohands_data', 'raw_data/egohands')
+    # os.rename('raw_data/egohands_data', 'raw_data/egohands')
     os.remove('egohands_data.zip')
 
 output_folder = 'data'
@@ -173,57 +162,6 @@ def to_bounding_box(box):
 
     return (ymin, xmin, ymax, xmax)
 
-def oxford_to_tfrecord():
-    count = 0
-    annotation_folders = ['raw_data/oxford/training_dataset/training_data/annotations',
-                          'raw_data/oxford/validation_dataset/validation_data/annotations',
-                          'raw_data/oxford/test_dataset/test_data/annotations']
-    image_folders = ['raw_data/oxford/training_dataset/training_data/images',
-                     'raw_data/oxford/validation_dataset/validation_data/images',
-                     'raw_data/oxford/test_dataset/test_data/images']
-    types = ['train', 'val', 'test']
-    
-    for i in range(len(annotation_folders)):
-        prefix = types[i]
-        count = 0
-        print(prefix)
-        annotation_folder = annotation_folders[i]
-        image_folder = image_folders[i]
-        writer = tf.python_io.TFRecordWriter(os.path.join(output_folder,
-                                                          prefix + '_oxford_0.tfrecords'))
-        for filename in glob.glob(os.path.join(annotation_folder, '*.mat')):
-            imgname = filename[len(annotation_folder) + 1:-3] + "jpg"
-            
-            F = sio.loadmat(filename)
-            xmins = []
-            ymins = []
-            xmaxs = []
-            ymaxs = []
-            count += 1
-            if count % 1000 == 0:
-                # swap writers.
-                writer.close()
-                writer = tf.python_io.TFRecordWriter(os.path.join(
-                    output_folder, prefix + '_oxford_' + str(count // 1000) + ".tfrecords"))
-                print("swapping writers...")
-        
-        
-            for box in F['boxes'].flatten():
-                bbox = []
-                for point in box.flatten()[0]:
-                    if point.shape == (1, 2):
-                        bbox.append(point[0])
-                rect = to_bounding_box(bbox)
-                xmins.append(rect[0])
-                ymins.append(rect[1])
-                xmaxs.append(rect[2])
-                ymaxs.append(rect[3])
-            bbox = (xmins, ymins, xmaxs, ymaxs)
-            write_to_record(writer, image_folder, imgname, bbox)
-            del F
-        writer.close()
-
-
 def egohands_to_tfrecord():
     count = 0
     metafilepath = 'raw_data/egohands/metadata.mat'
@@ -281,20 +219,16 @@ if __name__ == "__main__":
     if not os.path.isdir('raw_data'):
         print("Downloading datasets... This could take a while.")
         os.makedirs('raw_data')
-        download_oxford_data()
         download_egohands_data()
         print("Done downloading datasets")
 
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
-
-    print("oxford dataset:")
-    oxford_to_tfrecord()
-    print("done writing oxford dataset records")
+        
     print("egohands dataset:")
     egohands_to_tfrecord()
     print("done writing egohands dataset records")
     print("create labels.pbtxt:")
     with open('data/labels.pbtxt', 'w+') as F:
-        F.write('item {\n  name: "hand"\n  id: 1\n}')
+        F.write('item {\n  name: "hand"\n  id: 1\n  display_name: "hand"\n}')
     print("done.")
