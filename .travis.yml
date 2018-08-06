@@ -22,4 +22,4 @@ install:
   - pip install -r requirements.txt
 
 script:
-  - pytest test/full_test.py
+  - pytest test/full_test.py test/playback_test.py
