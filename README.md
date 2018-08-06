@@ -1,4 +1,5 @@
 # conductAR
+[![Build Status](https://travis-ci.com/coenvalk/conductAR.svg?branch=master)](https://travis-ci.com/coenvalk/conductAR)
 
 ## Info
 
