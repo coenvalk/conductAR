@@ -3,7 +3,7 @@ import mido
 import pygame
 from threading import Thread
 
-class Playback:        
+class Playback:
     def __init__(self, File=None, port=None):
         self.stopped = True
 
@@ -43,7 +43,7 @@ class Playback:
     def close(self):
         self.stopped = True
         self.port.close()
-    
+
     def _update(self):
         for msg in self.mid_file.play():
             if msg.type == 'note_on' or msg.type == 'note_off':
@@ -59,5 +59,8 @@ class Playback:
     def next_beat(self, keep_tempo=False):
         pass
 
-    def set_velocity(self, velocity):
+    def next_measure(self, keep_tempo=False):
+        pass
+
+    def set_dynamics(self, velocity):
         self.velocity = velocity
