@@ -17,13 +17,9 @@ before_install:
   - export PYTHONPATH=$PYTHONPATH:`pwd`:`pwd`/slim
   - cd ../..
   - sudo apt-get install -y libasound2-dev libjack-dev timidity alsa-base alsa-utils
-  - sudo chmod a+wr /dev/dsp
-  - sudo chmod a+wr /dev/audio*
-  - sudo chmod a+wr /dev/mixer*
-  - sudo chmod a+wr /dev/snd/seq*
 
 install:
   - pip install -r requirements.txt
 
 script:
-  - pytest test/full_test.py test/playback_test.py
+  - pytest test/full_test.py
